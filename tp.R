@@ -507,7 +507,155 @@ tp_con_valores <- tp_con_variables %>%
       j_cond_act == 1 ~ "Ocupado",
       j_cond_act == 2 ~ "Desocupado",
       j_cond_act == 3 ~ "Inactivo",
-      j_cond_act == 3 ~ "Ns./ Nr",
+      j_cond_act == 9 ~ "Ns./ Nr",
       TRUE ~ as.character(j_cond_act)
     )
   )
+
+
+tp_con_valores %>%
+  summarise(distintos=n_distinct(tp_con_valores), total=n())
+
+#833 observaciones repetidas, eliminamos?
+tp_sin_repetidos <- unique(tp_con_valores)  
+
+
+tp_sin_NA <- tp_sin_repetidos %>%
+  mutate(paquete_turistico
+         = replace(paquete_turistico,
+                   is.na(paquete_turistico) ,"Ns./ Nr."),
+         
+         transporte_en_paquete
+         = replace(transporte_en_paquete,
+                   is.na(transporte_en_paquete) ,"Ns./ Nr."),
+         
+         alojamiento_en_paquete
+         = replace(alojamiento_en_paquete,
+                   is.na(alojamiento_en_paquete) ,"Ns./ Nr."),
+         
+         comidas_en_paquete
+         = replace(comidas_en_paquete,
+                   is.na(comidas_en_paquete) ,"Ns./ Nr."),
+         
+         todas_las_comidas_en_paquete
+         = replace(todas_las_comidas_en_paquete,
+                   is.na(todas_las_comidas_en_paquete) ,"Ns./ Nr."),
+         
+         traslados_en_paquete
+         = replace(traslados_en_paquete,
+                   is.na(traslados_en_paquete) ,"Ns./ Nr."),
+         
+         excursiones_en_paquete
+         = replace(excursiones_en_paquete,
+                   is.na(excursiones_en_paquete) ,"Ns./ Nr."),
+         
+         seguro_en_paquete
+         = replace(seguro_en_paquete,
+                   is.na(seguro_en_paquete) ,"Ns./ Nr."),
+         
+         otros_servicios_en_paquete
+         = replace(otros_servicios_en_paquete,
+                   is.na(otros_servicios_en_paquete) ,"Ns./ Nr."),
+         
+         planificacion
+         = replace(planificacion,
+                   is.na(planificacion) ,"Ns./ Nr."),
+         
+         paquete_por_internet
+         = replace(paquete_por_internet,
+                   is.na(paquete_por_internet) ,"Ns./ Nr."),
+         
+         alojamiento_por_internet
+         = replace(alojamiento_por_internet,
+                   is.na(alojamiento_por_internet) ,"Ns./ Nr."),
+         
+         transporte_por_internet
+         = replace(transporte_por_internet,
+                   is.na(transporte_por_internet) ,"Ns./ Nr."),
+         
+         excursiones_entradas_por_internet
+         = replace(excursiones_entradas_por_internet,
+                   is.na(excursiones_entradas_por_internet) ,"Ns./ Nr."),
+         
+         espacios_rurales
+         = replace(espacios_rurales,
+                   is.na(espacios_rurales) ,"Ns./ Nr."),
+         
+         spa_termas
+         = replace(spa_termas,
+                   is.na(spa_termas) ,"Ns./ Nr."),
+         
+         visito_playa_mar_rio
+         = replace(visito_playa_mar_rio,
+                   is.na(visito_playa_mar_rio) ,"Ns./ Nr."),
+         
+         deporte_nieve
+         = replace(deporte_nieve,
+                   is.na(deporte_nieve) ,"Ns./ Nr."),
+         
+         deporte_aventura
+         = replace(deporte_aventura,
+                   is.na(deporte_aventura) ,"Ns./ Nr."),
+         
+         caza_pesca
+         = replace(caza_pesca,
+                   is.na(caza_pesca) ,"Ns./ Nr."),
+         
+         espect_deportivo
+         = replace(espect_deportivo,
+                   is.na(espect_deportivo) ,"Ns./ Nr."),
+         
+         espect_religioso
+         = replace(espect_religioso,
+                   is.na(espect_religioso) ,"Ns./ Nr."),
+         
+         teatro_cine_concierto
+         = replace(teatro_cine_concierto,
+                   is.na(teatro_cine_concierto) ,"Ns./ Nr."),
+         
+         museos_monumentos_zoo
+         = replace(museos_monumentos_zoo,
+                   is.na(museos_monumentos_zoo) ,"Ns./ Nr."),
+         
+         parques_reservas
+         = replace(parques_reservas,
+                   is.na(parques_reservas) ,"Ns./ Nr."),
+         
+         casinos_bingos
+         = replace(casinos_bingos,
+                   is.na(casinos_bingos) ,"Ns./ Nr."),
+         
+         salida_nocturna
+         = replace(salida_nocturna,
+                   is.na(salida_nocturna) ,"Ns./ Nr."),
+         
+         calif_transporte
+         = replace(calif_transporte,
+                   is.na(calif_transporte) ,"Ns./ Nr."),
+         
+         calif_alojamiento
+         = replace(calif_alojamiento,
+                   is.na(calif_alojamiento) ,"Ns./ Nr."),
+         
+         calif_gastronomia
+         = replace(calif_gastronomia,
+                   is.na(calif_gastronomia) ,"Ns./ Nr."),
+         
+         calif_info_turistica
+         = replace(calif_info_turistica,
+                   is.na(calif_info_turistica) ,"Ns./ Nr."),
+         
+         calif_higiene
+         = replace(calif_higiene,
+                   is.na(calif_higiene) ,"Ns./ Nr."),
+         
+         calif_seguridad
+         = replace(calif_seguridad,
+                   is.na(calif_seguridad) ,"Ns./ Nr."),
+         
+         calif_viaje
+         = replace(calif_viaje,
+                   is.na(calif_viaje) ,"Ns./ Nr."))
+
+#quedan 7971 NA que corresponden a codigos faltantes, 
+#si no vamos a usar esas variables habria que elinarlas para que quede limpio
