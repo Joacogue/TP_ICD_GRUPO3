@@ -659,3 +659,55 @@ tp_sin_NA <- tp_sin_repetidos %>%
 
 #quedan 7971 NA que corresponden a codigos faltantes, 
 #si no vamos a usar esas variables habria que elinarlas para que quede limpio
+
+#Aca termine agregando algunos NA porque me tiraba errores a la hora de hacer mean, sum y cosas asi xd,
+#ademas de que cambie el tipo de dato.
+
+tp_adelanto <- tp_sin_NA %>%
+  mutate(
+    calif_transporte = as.numeric(replace(calif_transporte, calif_transporte == "Ns./ Nr.", NA)),
+    calif_alojamiento = as.numeric(replace(calif_alojamiento, calif_alojamiento == "Ns./ Nr.", NA)),
+    calif_gastronomia = as.numeric(replace(calif_gastronomia, calif_gastronomia == "Ns./ Nr.", NA)),
+    calif_info_turistica = as.numeric(replace(calif_info_turistica, calif_info_turistica == "Ns./ Nr.", NA)),
+    calif_higiene = as.numeric(replace(calif_higiene, calif_higiene == "Ns./ Nr.", NA)),
+    calif_seguridad = as.numeric(replace(calif_seguridad, calif_seguridad == "Ns./ Nr.", NA)),
+    calif_viaje = as.numeric(replace(calif_viaje, calif_viaje == "Ns./ Nr.", NA)),
+    alojamiento = as.factor(alojamiento)
+  )
+
+#Aca basicamente busque cuales tenian menos media de ocupacion, y aproveche para ascar el gasto_per_capita y
+#la calificacion media.
+
+#AVISO: Esto tendriamos que verlo bien porque me saltaban tantos errores que termine siendo ayudado un toque por ia
+#Entonces si derrapo en algun lugar hay que verlo (Aunque a simple vista pareciera que no.)
+
+destinos_bajos <- tp_adelanto %>%
+  group_by(region_destino) %>%
+  summarise(
+    ocupacion_media = sum(!is.na(alojamiento)),
+    gasto_per_capita = mean(gasto_pc, na.rm = TRUE),
+    calificacion_media = mean(calif_viaje, na.rm = TRUE)
+  ) %>%
+  filter(ocupacion_media < quantile(ocupacion_media, 0.25))
+
+#Un grafiquito para visualizarlo y para tener para el jueves(?
+
+gastos <- destinos_bajos %>%
+  ggplot(aes(x = reorder(region_destino, gasto_per_capita), y = gasto_per_capita)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(title = "Gasto Per Cápita en Destinos con Baja Ocupación", x = "Destino", y = "Gasto Per Cápita") +
+  theme_minimal() +
+  coord_flip()
+
+print(gastos)
+
+#Otro grafiquito pero de la media de calificaciones de los destinos
+
+calificaciones <- destinos_bajos %>%
+  ggplot(aes(x = reorder(region_destino, calificacion_media), y = calificacion_media)) +
+  geom_bar(stat = "identity", fill = "orange") +
+  labs(title = "Calificación Promedio en Destinos con Baja Ocupación", x = "Destino", y = "Calificación Promedio") +
+  theme_minimal() +
+  coord_flip()
+
+print(calificaciones)
