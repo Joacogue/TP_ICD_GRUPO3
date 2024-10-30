@@ -850,3 +850,43 @@ top_localidades <- tp_adelanto_usd %>%
   summarise(total_turistas = sum(cantidad_integrantes)) %>%
   top_n(10, total_turistas) %>%
   arrange(region_destino, desc(total_turistas))
+
+#cambio anual de la proporcion de turistas
+ 
+ggplot(tp_adelanto_usd) +
+  geom_bar( aes(x=region_destino, fill = factor(trimestre)), position = "fill")+
+  labs(title = "Proporcion trimestral de visitantes por region de destino
+       evaluada por año",
+       fill = "Trimestre", 
+       y = "Proporción", 
+       x = "")+
+  facet_wrap(~anio)+
+  coord_flip()+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_blank(), 
+        axis.ticks.x = element_blank())
+  
+#Destinos elegidos por trimestre clasificado por tipo de visitante (ver con zoom)
+turistas_por_trimestre <- tp_adelanto_usd %>%
+  group_by(tipo_visitante, trimestre, region_destino) %>%
+  summarise(cantidad_turistas = sum(cantidad_integrantes, na.rm = TRUE),
+            .groups = 'drop')
+
+ggplot(turistas_por_trimestre, aes(x = cantidad_turistas, y = region_destino, 
+                                   fill = factor(trimestre))) +
+  geom_bar(stat = "identity", position = position_dodge(0.9),width = 1) +
+  geom_text(aes(label = cantidad_turistas), 
+            position = position_dodge(0.9),
+            hjust = 1,
+            color = "black",
+            size = 3) +  
+  labs(title = "Cantidad de visitantes a cada region
+       por trimestre y region de destino",
+       fill = "Trimestre",
+       x = "Cantidad de Turistas",
+       y = "") +
+  facet_wrap(~tipo_visitante)+
+  theme_minimal()+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_blank(), 
+        axis.ticks.x = element_blank())
