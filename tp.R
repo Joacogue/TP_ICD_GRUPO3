@@ -1,8 +1,7 @@
 library(tidyverse)
 
-tp_icd <- read_csv("evyth_microdatos.csv", locale = locale(decimal_mark = ","))
+tp_icd <- read_csv("C:/Users/ignac/OneDrive/Desktop/UNSAM/ICD/TP Final/evyth_microdatos.csv", locale = locale(decimal_mark = ","))
 tp_diccionario <- read_csv("evyth_diccionario_registro.csv")
-
 tp <- tp_icd%>%
   filter(anio>=2021)%>%
   relocate(p004, .after= miembro)%>%
@@ -711,3 +710,143 @@ calificaciones <- destinos_bajos %>%
   coord_flip()
 
 print(calificaciones)
+
+#Dolarizacion del gasto per cápita
+
+cambio_usd<- read_csv("~/TP_ICD_GRUPO3/archiv_hotelera/tipos-de-cambio-historicos.csv", locale = locale(decimal_mark = ","))
+cambio_usd$indice_tiempo <- as.Date(cambio_usd$indice_tiempo, format = "%Y-%m-%d")
+
+cambio_usd <- cambio_usd %>%
+  mutate(dolar_estadounidense = as.numeric(gsub(",", ".", dolar_estadounidense)))
+
+cambio_usd <- cambio_usd %>%
+  select(dolar_estadounidense, indice_tiempo) %>%
+  filter(year(indice_tiempo) >= 2021 & year(indice_tiempo) <= 2024) %>%
+  mutate(trimestre = quarter(indice_tiempo),anio=year(indice_tiempo))
+
+cambio_usd <- cambio_usd %>%
+  group_by(trimestre,anio) %>%
+  summarize(
+    media = mean(dolar_estadounidense, na.rm = TRUE),
+    mediana = median(dolar_estadounidense, na.rm = TRUE),
+    dispersion = sd(dolar_estadounidense, na.rm = TRUE)
+  )
+
+tp_adelanto_usd <- tp_adelanto %>%
+  left_join(cambio_usd, by=c("trimestre", "anio")) %>% 
+  mutate(gasto_pc_usd = gasto_pc/media) %>%
+  select(-media, -mediana,-dispersion)
+
+options(scipen = 0) #activo notacion cientifica
+options(scipen = 999) #saco notacion cientifica
+
+# Región de destino elegida en base a región de origen
+
+ggplot(tp_adelanto_usd %>% filter(tipo_visitante=='Excursionista'), aes(x = region_origen, fill = region_destino)) +
+  geom_bar(position = "stack") +
+  labs(title = "Región de destino elegida",
+       subtitle = "en base a Región de origen del excursionista",
+       x = "Región de Origen",
+       y = "Cantidad de Turistas",
+       fill = "Región de Destino") +
+  coord_flip()
+
+
+# Se puede ver que en todos los casos el mayor porcentaje de los viajes son dentro
+# de la misma región
+
+# Discriminando por tipo de viajero
+
+ggplot(tp_adelanto_usd %>% filter(tipo_visitante=='Turista'), aes(x = region_origen, fill = region_destino)) +
+  geom_bar(position = "stack") +
+  labs(title = "Región de destino elegida",
+       subtitle = "en base a Región de origen del turista",
+       x = "Región de Origen",
+       y = "Cantidad de Turistas",
+       fill = "Región de Destino") +
+  coord_flip()
+
+ggplot(tp_adelanto_usd %>% filter(tipo_visitante=='Excursionista'), aes(x = region_origen, fill = region_destino)) +
+  geom_bar(position = "stack") +
+  labs(title = "Región de destino elegida",
+       subtitle = "en base a Región de origen del excursionista",
+       x = "Región de Origen",
+       y = "Cantidad de Turistas",
+       fill = "Región de Destino") +
+  coord_flip()
+
+#Discriminando en turistas que la region de origen no sea la misma que destino
+
+ggplot(tp_adelanto_usd %>% filter(tipo_visitante=='Turista', region_origen!=region_destino), aes(x = region_origen, fill = region_destino)) +
+  geom_bar(position = "stack") +
+  labs(title = "Región de destino elegida",
+       subtitle = "en base a Región de origen del turista",
+       x = "Región de Origen",
+       y = "Cantidad de Turistas",
+       fill = "Región de Destino") +
+  coord_flip()
+
+# Destinos más elegidos por trimestre
+turistas_por_trimestre <- tp_adelanto_usd %>%
+  filter(tipo_visitante=='Excursionista') %>% 
+  group_by(trimestre, region_destino) %>%
+  summarise(cantidad_turistas = sum(cantidad_integrantes, na.rm = TRUE))
+
+ggplot(turistas_por_trimestre, aes(x = trimestre, y = cantidad_turistas, fill = region_destino)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = cantidad_turistas), 
+            position = position_stack(vjust = 0.5),
+            color = "white") +  
+  labs(title = "Cantidad de Excursionistas",
+       subtitle="por Trimestre y Región de Destino",
+       x = "Trimestre",
+       y = "Cantidad de Turistas",
+       fill = "Región de Destino") +
+  theme_minimal()
+
+# Distrución de gasto per cápita USD por región de destino
+
+q1 <- quantile(tp_adelanto_usd$gasto_pc_usd, 0.25)
+q3 <- quantile(tp_adelanto_usd$gasto_pc_usd, 0.75)
+iqr <- q3 - q1
+
+limite_inferior <- 0
+limite_superior <- q3 + 2 * iqr
+
+ggplot(tp_adelanto_usd %>% filter(gasto_pc >= q[1] & gasto_pc <= q[2]), 
+       aes(x = region_destino, y = gasto_pc_usd)) +
+  geom_jitter(alpha = 0.5, width = 0.2) +
+  geom_boxplot(fill = "lightblue", outlier.shape = NA) +
+  labs(title = "Distribución del Gasto Per Cápita por Región de Destino",
+       x = "Región de Destino",
+       y = "Gasto Per Cápita") +
+  coord_cartesian(ylim = c(limite_inferior, limite_superior)) + 
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+  scale_x_discrete(labels = c("Provincia de Buenos Aires - Partidos del GBA" = "Buenos Aires - GBA",
+                              "Provincia de Buenos Aires - Resto" = "Buenos Aires - Resto"))
+
+
+#top 10 destinos
+top_10_destinos <- tp_adelanto_usd %>%
+  filter(tipo_visitante=='Turista') %>% 
+  group_by(region_destino, provincia_destino, localidad_destino) %>%
+  summarise(cantidad_turistas = sum(cantidad_integrantes, na.rm = TRUE)) %>%
+  arrange(region_destino, desc(cantidad_turistas)) %>%
+  group_by(region_destino) %>%
+  slice_head(n = 10) %>%
+  ungroup()
+
+print(top_10_destinos)
+
+top_provincias <- tp_adelanto_usd %>%
+  group_by(region_destino, provincia_destino) %>%
+  summarise(total_turistas = sum(cantidad_integrantes)) %>%
+  top_n(10, total_turistas) %>%
+  arrange(region_destino, desc(total_turistas))
+
+top_localidades <- tp_adelanto_usd %>%
+  group_by(region_destino, localidad_destino) %>%
+  summarise(total_turistas = sum(cantidad_integrantes)) %>%
+  top_n(10, total_turistas) %>%
+  arrange(region_destino, desc(total_turistas))
