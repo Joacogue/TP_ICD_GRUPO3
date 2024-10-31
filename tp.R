@@ -1,6 +1,6 @@
 library(tidyverse)
 
-tp_icd <- read_csv("C:/Users/ignac/OneDrive/Desktop/UNSAM/ICD/TP Final/evyth_microdatos.csv", locale = locale(decimal_mark = ","))
+tp_icd <- read_csv("evyth_microdatos.csv", locale = locale(decimal_mark = "."))
 tp_diccionario <- read_csv("evyth_diccionario_registro.csv")
 tp <- tp_icd%>%
   filter(anio>=2021)%>%
@@ -806,20 +806,25 @@ ggplot(turistas_por_trimestre, aes(x = trimestre, y = cantidad_turistas, fill = 
 
 # Distrución de gasto per cápita USD por región de destino
 
-q1 <- quantile(tp_adelanto_usd$gasto_pc_usd, 0.25)
-q3 <- quantile(tp_adelanto_usd$gasto_pc_usd, 0.75)
+tp_adelanto_usd_turista <- tp_adelanto_usd %>% filter(tipo_visitante=='Turista')
+tp_adelanto_usd_excursionista <- tp_adelanto_usd %>% filter(tipo_visitante=='Excursionista')
+
+q1 <- quantile(tp_adelanto_usd_turista$gasto_pc_usd, 0.25)
+q3 <- quantile(tp_adelanto_usd_turista$gasto_pc_usd, 0.75)
 iqr <- q3 - q1
 
 limite_inferior <- 0
 limite_superior <- q3 + 2 * iqr
 
-ggplot(tp_adelanto_usd %>% filter(gasto_pc >= q[1] & gasto_pc <= q[2]), 
+ggplot(tp_adelanto_usd_turista, 
        aes(x = region_destino, y = gasto_pc_usd)) +
-  geom_jitter(alpha = 0.5, width = 0.2) +
-  geom_boxplot(fill = "lightblue", outlier.shape = NA) +
-  labs(title = "Distribución del Gasto Per Cápita por Región de Destino",
+  geom_jitter(alpha = 0.1, width = 0.2) +
+  geom_boxplot(fill = "lightblue", outlier.shape = NA, alpha = 0.5) +
+  stat_summary(fun = mean, geom = "point", color = "red", size = 3, shape = 18) +
+  labs(title = "Distribución del Gasto Per Cápita de Turistas",
+       subtitle= "por Región de Destino",
        x = "Región de Destino",
-       y = "Gasto Per Cápita") +
+       y = "Gasto Per Cápita de Turistas [USD]") +
   coord_cartesian(ylim = c(limite_inferior, limite_superior)) + 
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
