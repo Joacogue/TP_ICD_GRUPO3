@@ -135,7 +135,6 @@ ggplot(destino_por_anio, aes(x=anio_trimestre, y=porcentaje, group = region_dest
   ) +
   labs(title = "Evolucion de la proporcion de visitantes a cada region",
        subtitle = "",
-       group = "Region de destino",
        x = "",
        y = "Porcentaje")+
   theme(plot.title = element_text(),
