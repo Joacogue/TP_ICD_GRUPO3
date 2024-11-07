@@ -115,32 +115,52 @@ top_localidades <- tp_adelanto_usd %>%
 
 #Evolucion de la proporcion de turistas
 
-destino_por_anio <- tp_adelanto_usd%>%
-  group_by(anio,trimestre,region_destino)%>%
-  summarise(total_visitantes = sum(cantidad_integrantes))%>%
-  ungroup() %>%
-  group_by(anio) %>%
-  mutate(porcentaje = round((total_visitantes / sum(total_visitantes)) * 100),
-         .groups = 'keep')%>%
-  mutate(anio_trimestre = paste0(anio,"-","Q", trimestre))
+library(forcats)
 
-ggplot(destino_por_anio, aes(x=anio_trimestre, y=porcentaje, group = region_destino)) +
+destino_por_anio <- tp_adelanto_usd %>%
+  group_by(anio, trimestre, region_destino) %>%
+  summarise(total_visitantes = sum(cantidad_integrantes), .groups = 'drop') %>%
+  group_by(anio, trimestre) %>%
+  mutate(porcentaje = round((total_visitantes / sum(total_visitantes)) * 100)) %>%
+  ungroup() %>%
+  mutate(anio_trimestre = paste0(anio, "-Q", trimestre))
+
+destino_por_anio <- destino_por_anio %>%
+  group_by(anio_trimestre) %>%
+  mutate(
+    porcentaje = round((total_visitantes / sum(total_visitantes)) * 100, 1)
+  ) %>%
+  mutate(
+    ajuste = 100 - sum(porcentaje),
+    porcentaje = if_else(row_number() == 1, porcentaje + ajuste, porcentaje) 
+  )
+
+destino_por_anio <- destino_por_anio %>%
+  mutate(region_destino = fct_reorder(region_destino, porcentaje, .fun = mean, .desc = TRUE))
+
+
+ggplot(destino_por_anio, aes(x = anio_trimestre, y = porcentaje, group = region_destino)) +
   geom_line(aes(color = region_destino), linewidth = 1) +
   geom_point(
     aes(fill = region_destino), 
     size = 2, 
-    pch = 21, # Type of point that allows us to have both color (border) and fill.
+    pch = 21, 
     color = "white", 
-    stroke = 1 # The width of the border, i.e. stroke.
+    stroke = 1
   ) +
-  labs(title = "Evolucion de la proporcion de visitantes a cada region",
-       subtitle = "",
-       x = "",
-       y = "Porcentaje")+
+  labs(title = "Evolución de la proporción de visitantes a cada región",
+       subtitle = "Proporción trimestral de visitantes por región de destino sobre total de visitantes",
+       x = "Año - Trimestre",
+       y = "Porcentaje",
+       color = "Región de destino", 
+       fill = "Región de destino") +
+  scale_y_continuous(breaks = seq(0, 100, by = 10),  # Ajusta el rango y el intervalo de etiquetas en el eje y
+                     labels = function(x) paste0(x, "%")) +  # Añadir el símbolo de porcentaje
+  theme_minimal() +
   theme(plot.title = element_text(),
-        axis.text.y = element_blank(), 
-        axis.ticks.y = element_blank(),
-        axis.text = element_text(angle = 45))
+        axis.text.y = element_text(), 
+        axis.ticks.y = element_line(),
+        axis.text.x = element_text(angle = 45, hjust = 1))
 
 
 #Destinos elegidos por trimestre clasificado por tipo de visitante (ver con zoom)
@@ -170,10 +190,6 @@ ggplot(turistas_por_trimestre, aes(x = cantidad_turistas, y = region_destino,
         axis.ticks.x = element_blank())
 
 
-
-
-
-  
 ggplot(tp_adelanto_usd%>% filter(!alojamiento == 0 & !alojamiento== "Ns./ Nr."),
        aes(x= region_destino, fill= alojamiento))+
   geom_bar(position = "fill")+
@@ -261,3 +277,69 @@ ggplot(tp_adelanto_usd%>% filter(!salida_nocturna== "Ns./ Nr."),
   coord_flip()+
   theme_minimal()+
   facet_grid(~tipo_visitante)
+
+glimpse(destino_por_anio)
+
+destino_por_anio %>%
+  group_by(anio_trimestre) %>%
+  summarise(suma_porcentajes = sum(porcentaje))
+
+library(dplyr)
+library(waffle)
+library(RColorBrewer)
+
+# Filtrar el dataset destino_por_anio
+df <- destino_por_anio
+
+colores_set3 <- brewer.pal(n = length(unique(data_seleccionada$region_destino)), name = "Set3")
+
+# Definir manualmente el año y trimestre
+anio_seleccionado <- 2021  # Cambia este valor según el año que desees
+trimestre_seleccionado <- 1  # Cambia este valor entre 1, 2, 3 o 4 según el trimestre
+
+# Filtrar los datos del trimestre y año seleccionados
+data_seleccionada <- df %>%
+  filter(anio == anio_seleccionado & trimestre == trimestre_seleccionado)
+
+# Asegurar que los porcentajes sumen 100 (en caso de redondeo)
+data_seleccionada <- data_seleccionada %>%
+  mutate(porcentaje_ajustado = round(porcentaje / sum(porcentaje) * 100))
+
+# Corregir el último porcentaje para que la suma sea exactamente 100
+# Sumar todos los porcentajes ajustados y restar ese valor de 100
+total_ajustado <- sum(data_seleccionada$porcentaje_ajustado)
+diferencia <- 100 - total_ajustado
+
+# Ajustar el último valor (siempre al final de la lista)
+data_seleccionada$porcentaje_ajustado[nrow(data_seleccionada)] <- data_seleccionada$porcentaje_ajustado[nrow(data_seleccionada)] + diferencia
+
+data_seleccionada$region_destino <- factor(data_seleccionada$region_destino, 
+                                           levels = unique(data_seleccionada$region_destino))
+
+data_seleccionada <- data_seleccionada %>%
+  arrange(desc(porcentaje_ajustado))
+
+# Graficar el waffle con los porcentajes ajustados
+waffle::waffle(
+  c(setNames(data_seleccionada$porcentaje_ajustado, data_seleccionada$region_destino)),
+  rows = 10,
+  colors = colores_set3,
+  title = paste("Proporción de Visitantes por Región - Trimestre", trimestre_seleccionado, "Año", anio_seleccionado),
+  xlab = "1 cuadrado = 1% de visitantes"
+)
+
+ggplot(tp_adelanto_usd, aes(x = tipo_visitante, y = gasto_pc_usd)) +
+  geom_violin(fill = "lightblue", color = "darkblue", alpha = 0.7) +
+  geom_boxplot(width = 0.1, outlier.shape = NA, color = "black", alpha = 0.5) + 
+  labs(title = "Distribución del Gasto Per Cápita por Quintil de Ingreso Familiar",
+       x = "Quintil de Ingreso Per Cápita Familiar",
+       y = "Gasto Per Cápita en USD") +
+  theme_minimal()
+
+ggplot(tp_adelanto_usd, aes(x = gasto_pc_usd)) +
+  geom_density(fill = "coral", alpha = 0.6) +
+  labs(title = "Distribución del Gasto Per Cápita",
+       x = "Gasto Per Cápita [USD]",
+       y = "Densidad") +
+  theme_minimal()
+
