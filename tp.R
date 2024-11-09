@@ -1,6 +1,6 @@
 library(tidyverse)
 
-tp_icd <- read_csv("C:/Users/ignac/OneDrive/Desktop/UNSAM/ICD/TP Final/evyth_microdatos.csv", locale = locale(decimal_mark = ","))
+tp_icd <- read_csv("evyth_microdatos.csv", locale = locale(decimal_mark = ","))
 tp_diccionario <- read_csv("evyth_diccionario_registro.csv")
 tp <- tp_icd%>%
   filter(anio>=2021)%>%
@@ -890,3 +890,25 @@ ggplot(turistas_por_trimestre, aes(x = cantidad_turistas, y = region_destino,
   theme(plot.title = element_text(hjust = 0.5),
         axis.text.x = element_blank(), 
         axis.ticks.x = element_blank())
+
+# Paso 1: Calcular las proporciones manualmente y reorganizar el dataset
+tp_adelanto_usd_prueba <- tp_adelanto_usd %>%
+  group_by(anio, region_destino, trimestre) %>%
+  summarise(proporcion = n() / sum(n()), .groups = 'drop')
+
+# Paso 2: Crear el gráfico con línea de tendencia
+ggplot(tp_adelanto_usd_prueba, aes(x = region_destino, y = proporcion, color = factor(trimestre), group = trimestre)) +
+  geom_bar(stat = "identity", aes(fill = factor(region_destino)), position = "fill") +
+  geom_smooth(aes(group = trimestre), method = "lm", se = FALSE) +  # Agrega línea de tendencia
+  labs(title = "Proporción trimestral de visitantes por región de destino evaluada por año",
+       fill = "regiones", 
+       y = "Proporción", 
+       x = "") +
+  facet_wrap(~anio) +
+  coord_flip() +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_blank(), 
+        axis.ticks.x = element_blank())
+
+
+
