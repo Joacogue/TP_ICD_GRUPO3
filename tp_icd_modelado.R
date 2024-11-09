@@ -67,3 +67,48 @@ grid <- data_grid(tp_icd, duracion_viaje, cantidad_integrantes, region_destino) 
   add_predictions(mod3)
 base + geom_line(data=grid, aes(x=duracion_viaje, y=pred, group = cantidad_integrantes), color='red')
 anova(mod2,mod3)
+
+#09/11/24
+# Filtrar datos para viajes de hasta 30 días
+tp_icd_filtered <- tp_icd %>% 
+  filter(duracion_viaje <= 30)
+
+
+# modelado cubico con interacciones
+mod_cubic <- lm(gasto_pc_usd ~ poly(duracion_viaje, 3) + region_destino * region_origen, data = tp_icd)
+summary(mod_cubic)
+
+#impacto de alojamiento y transporte
+mod_cubic_b <- lm(gasto_pc_usd ~ poly(duracion_viaje, 3) + region_destino + cantidad_integrantes, data = tp_icd)
+summary(mod_cubic_b)
+
+
+# Comparar modelos
+anova(mod_cubic, mod_cubic_b)
+
+#grid para predicciones
+grid <- data_grid(tp_icd, duracion_viaje = seq(min(tp_icd$duracion_viaje), max(tp_icd$duracion_viaje), length.out = 100),
+                  region_destino, cantidad_integrantes) %>%
+  add_predictions(mod_cubic)
+
+# Convertir la variable 'trimestre' a factor si aún no lo está
+tp_icd_filtered$trimestre <- as.factor(tp_icd_filtered$trimestre)
+
+# Modelo lineal para evaluar la significancia del trimestre
+modelo_trimestre <- lm(gasto_pc_usd ~ duracion_viaje + trimestre + region_destino, data = tp_icd_filtered)
+summary(modelo_trimestre)
+
+# Análisis de varianza (ANOVA) para evaluar la significancia del trimestre
+anova(modelo_trimestre)
+
+# Construir un modelo de regresión lineal múltiple con las variables significativas
+modelo_completo <- lm(gasto_pc_usd ~ duracion_viaje + trimestre + region_destino, data = tp_icd_filtered)
+
+# Resumen del modelo
+summary(modelo_completo)
+
+# Generar predicciones
+tp_icd_filtered$predicciones <- predict(modelo_completo, newdata = tp_icd_filtered)
+
+tp_icd_filtered$error <- tp_icd_filtered$gasto_pc_usd - tp_icd_filtered$predicciones
+

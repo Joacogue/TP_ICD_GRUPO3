@@ -343,3 +343,41 @@ ggplot(tp_adelanto_usd, aes(x = gasto_pc_usd)) +
        y = "Densidad") +
   theme_minimal()
 
+#09/11/22
+
+# Visualizar con el modelo ajustado
+ggplot(tp_icd, aes(x = duracion_viaje, y = gasto_pc_usd)) +
+  geom_point(aes(color = factor(cantidad_integrantes))) +
+  geom_smooth(method = "lm", formula = y ~ poly(x, 3), se = FALSE, color = "red")+
+  facet_wrap(~ region_destino) +
+  labs(title = "Predicción de Gasto per cápita basado en Duración del Viaje",
+       x = "Duración del viaje (días)", y = "Gasto per cápita (USD)")
+
+# Crear el gráfico con los datos filtrados
+base <- ggplot(tp_icd_filtered, aes(x = duracion_viaje, y = gasto_pc_usd)) + 
+  geom_point(aes(color = factor(cantidad_integrantes))) +
+  geom_smooth(method = "lm", formula = y ~ poly(x, 2), se = FALSE, color = "red") +
+  facet_wrap(~ region_destino) +
+  labs(
+    title = "Predicción de Gasto per cápita basado en Duración del Viaje",
+    x = "Duración del viaje (días)",
+    y = "Gasto per cápita (USD)"
+  ) +
+  theme_minimal()
+
+# Mostrar el gráfico predicciones por region y trimestre
+print(base)
+
+
+
+ggplot(tp_icd_filtered, aes(x = duracion_viaje, y = gasto_pc_usd, color = factor(trimestre))) +
+  geom_point(alpha = 0.5) +
+  geom_line(aes(y = predicciones), color = "red", size = 1) +
+  facet_grid(region_destino ~ trimestre) +
+  labs(
+    title = "Predicción del Gasto per cápita según Duración del Viaje, Trimestre y Región",
+    x = "Duración del Viaje (días)",
+    y = "Gasto per cápita (USD)"
+  ) +
+  theme_minimal()
+
